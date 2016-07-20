@@ -43,6 +43,10 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoadException;
@@ -60,6 +64,7 @@ import org.jboss.shrinkwrap.impl.base.exporter.zip.ZipExporterImpl;
 import org.jboss.shrinkwrap.impl.base.importer.zip.ZipImporterImpl;
 import org.jboss.shrinkwrap.impl.base.spec.JavaArchiveImpl;
 import org.jboss.shrinkwrap.impl.base.spec.WebArchiveImpl;
+import org.wildfly.swarm.Parameters;
 import org.wildfly.swarm.bootstrap.modules.BootModuleLoader;
 import org.wildfly.swarm.bootstrap.util.BootstrapProperties;
 import org.wildfly.swarm.bootstrap.util.TempFileManager;
@@ -87,6 +92,10 @@ import org.wildfly.swarm.spi.api.internal.SwarmInternalProperties;
 public class Container {
 
     public static final String VERSION;
+
+    @Inject
+    @Parameters
+    private String[] args;
 
     /**
      * Construct a new, un-started container.
@@ -129,12 +138,24 @@ public class Container {
      * @throws Exception If an error occurs performing classloading and initialization magic.
      */
     public Container(boolean debugBootstrap, String... args) throws Exception {
+        this.args = args;
+        this.debugBootstrap = debugBootstrap;
+        this.init();
+    }
+
+    public void init() {
         System.setProperty(SwarmInternalProperties.VERSION, VERSION);
+
+        if (debugBootstrap == null) {
+            debugBootstrap = Boolean.getBoolean(SwarmProperties.DEBUG_BOOTSTRAP);
+        }
 
         createServer(debugBootstrap);
         createShrinkWrapDomain();
         determineDeploymentType();
+    }
 
+    private void finalSetup() throws Exception {
         CommandLine cmd = CommandLine.parse(args);
         cmd.apply(this);
 
@@ -329,6 +350,8 @@ public class Container {
     public Container start(boolean eagerlyOpen) throws Exception {
         if (!this.running) {
 
+            finalSetup();
+
             if (stageConfig.isPresent()) {
 
                 System.out.println("[INFO] Starting container with stage config source : " + stageConfigUrl.get());
@@ -520,7 +543,7 @@ public class Container {
         return defaultDeploymentClassLoader;
     }
 
-    private void createShrinkWrapDomain() throws ModuleLoadException {
+    private void createShrinkWrapDomain() {
         ClassLoader originalCl = Thread.currentThread().getContextClassLoader();
         try {
             if (isFatJar()) {
@@ -534,25 +557,25 @@ public class Container {
             this.domain.getConfiguration().getExtensionLoader().addOverride(ExplodedExporter.class, ExplodedExporterImpl.class);
             this.domain.getConfiguration().getExtensionLoader().addOverride(JavaArchive.class, JavaArchiveImpl.class);
             this.domain.getConfiguration().getExtensionLoader().addOverride(WebArchive.class, WebArchiveImpl.class);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             Thread.currentThread().setContextClassLoader(originalCl);
         }
     }
 
-    private void createServer(boolean debugBootstrap) throws Exception {
+    private void createServer(boolean debugBootstrap) {
         if (System.getProperty("boot.module.loader") == null) {
             System.setProperty("boot.module.loader", BootModuleLoader.class.getName());
         }
         if (debugBootstrap) {
             Module.setModuleLogger(new StreamModuleLogger(System.err));
         }
-        Module module = Module.getBootModuleLoader().loadModule(ModuleIdentifier.create("org.wildfly.swarm.container", "runtime"));
-        Class<?> serverClass = module.getClassLoader().loadClass("org.wildfly.swarm.container.runtime.RuntimeServer");
         try {
-            this.server = (Server) serverClass.newInstance();
+            Module module = Module.getBootModuleLoader().loadModule(ModuleIdentifier.create("org.wildfly.swarm.container", "runtime"));
+            Class<?> serverClass = module.getClassLoader().loadClass("org.wildfly.swarm.container.runtime.RuntimeServer");
 
+            this.server = (Server) serverClass.newInstance();
         } catch (Throwable t) {
             t.printStackTrace();
         }
@@ -639,7 +662,7 @@ public class Container {
         list.add(binding);
     }
 
-    protected String determineDeploymentType() throws IOException {
+    protected String determineDeploymentType() {
         if (this.defaultDeploymentType == null) {
             this.defaultDeploymentType = determineDeploymentTypeInternal();
             System.setProperty(BootstrapProperties.DEFAULT_DEPLOYMENT_TYPE, this.defaultDeploymentType);
@@ -647,7 +670,7 @@ public class Container {
         return this.defaultDeploymentType;
     }
 
-    protected String determineDeploymentTypeInternal() throws IOException {
+    protected String determineDeploymentTypeInternal() {
         String artifact = System.getProperty(BootstrapProperties.APP_PATH);
         if (artifact != null) {
             int dotLoc = artifact.lastIndexOf('.');
@@ -676,6 +699,8 @@ public class Container {
                         return "war";
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -691,6 +716,8 @@ public class Container {
                         return "war";
                     }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
@@ -763,9 +790,9 @@ public class Container {
 
     private boolean running = false;
 
-    private String defaultDeploymentType;
+    private Boolean debugBootstrap;
 
-    private String[] args;
+    private String defaultDeploymentType;
 
     private Optional<ProjectStage> stageConfig = Optional.empty();
 
