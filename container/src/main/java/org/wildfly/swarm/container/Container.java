@@ -43,13 +43,10 @@ import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
-import org.jboss.modules.ModuleLoadException;
 import org.jboss.modules.log.StreamModuleLogger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.Domain;
