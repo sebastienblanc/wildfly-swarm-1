@@ -61,7 +61,7 @@ import org.jboss.shrinkwrap.impl.base.exporter.zip.ZipExporterImpl;
 import org.jboss.shrinkwrap.impl.base.importer.zip.ZipImporterImpl;
 import org.jboss.shrinkwrap.impl.base.spec.JavaArchiveImpl;
 import org.jboss.shrinkwrap.impl.base.spec.WebArchiveImpl;
-import org.wildfly.swarm.Parameters;
+import org.wildfly.swarm.CommandLineArgs;
 import org.wildfly.swarm.bootstrap.modules.BootModuleLoader;
 import org.wildfly.swarm.bootstrap.util.BootstrapProperties;
 import org.wildfly.swarm.bootstrap.util.TempFileManager;
@@ -91,7 +91,7 @@ public class Container {
     public static final String VERSION;
 
     @Inject
-    @Parameters
+    @CommandLineArgs
     private String[] args;
 
     /**
