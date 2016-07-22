@@ -65,6 +65,7 @@ import org.wildfly.swarm.CommandLineArgs;
 import org.wildfly.swarm.bootstrap.modules.BootModuleLoader;
 import org.wildfly.swarm.bootstrap.util.BootstrapProperties;
 import org.wildfly.swarm.bootstrap.util.TempFileManager;
+import org.wildfly.swarm.cdi.UnmanagedInstance;
 import org.wildfly.swarm.cli.CommandLine;
 import org.wildfly.swarm.container.internal.Deployer;
 import org.wildfly.swarm.container.internal.ProjectStageFactory;
@@ -572,7 +573,8 @@ public class Container {
             Module module = Module.getBootModuleLoader().loadModule(ModuleIdentifier.create("org.wildfly.swarm.container", "runtime"));
             Class<?> serverClass = module.getClassLoader().loadClass("org.wildfly.swarm.container.runtime.RuntimeServer");
 
-            this.server = (Server) serverClass.newInstance();
+            UnmanagedInstance serverInstance = new UnmanagedInstance(serverClass.newInstance());
+            this.server = (Server) serverInstance.inject().postConstruct().get();
         } catch (Throwable t) {
             t.printStackTrace();
         }
