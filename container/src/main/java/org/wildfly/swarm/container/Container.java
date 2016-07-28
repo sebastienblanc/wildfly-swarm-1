@@ -25,10 +25,9 @@ import org.wildfly.swarm.spi.api.Fraction;
 import org.wildfly.swarm.spi.api.SocketBindingGroup;
 
 /**
- * @deprecated Use {@link org.wildfly.swarm.Swarm} instead.
- *
  * @author Bob McWhirter
  * @author Ken Finnigan
+ * @deprecated Use {@link org.wildfly.swarm.Swarm} instead.
  */
 @Deprecated
 @Vetoed
@@ -107,17 +106,17 @@ public class Container extends Swarm {
 
     @Override
     @Deprecated
-    public Container deploy() throws DeploymentException {
+    public Container deploy() throws Exception {
         return (Container) super.deploy();
     }
 
     @Override
     @Deprecated
-    public Container deploy(Archive<?> deployment) throws DeploymentException {
+    public Container deploy(Archive<?> deployment) throws Exception {
         return (Container) super.deploy(deployment);
     }
 
-    public Archive<?> createDefaultDeployment() {
+    public Archive<?> createDefaultDeployment() throws Exception {
         return super.createDefaultDeployment();
     }
 
